@@ -1,0 +1,24 @@
+name: Windows.Collection.SSMSTmpFiles
+description: |
+This artifact identifies and collects temporary `.sql` files created by SQL Server Management Studio (SSMS) for all user profiles on the system. These temporary files can contain sensitive or recent SQL queries executed during database interactions, making them valuable for forensic analysis or incident response.  
+Optionally, the files can be uploaded for further offline investigation.
+author: Kirke Kjellberg & Christian Henriksen @ itm8 ARC Incident Response Team 
+type: CLIENT
+
+precondition: SELECT OS FROM info() WHERE OS = 'windows'
+parameters:
+  - name: upload_files
+    type: bool
+    description: "Set to true to upload the files"
+    default: N
+
+sources:
+- name: SSMSTempSQLFiles
+  query: |
+    LET files = SELECT * FROM glob(globs=['C:/Users/*/AppData/Local/Temp/*..sql'])
+    LET Content = read_file(filename=OSPath, length=1000)
+    LET SQLTmpFile = if(condition=upload_files, then=upload(file=OSPath))
+    SELECT Btime, OSPath, SQLTmpFile, Content FROM files
+column_types:
+  - name: SQLTmpFile
+    type: upload_preview
